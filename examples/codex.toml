@@ -1,0 +1,8 @@
+[mcp_servers.plenticore]
+command = "uv"
+args = [
+  "run", "--frozen", "--directory",
+  "/absolute/path/plenticore-mcp",
+  "plenticore-mcp", "--env-file",
+  "/absolute/path/plenticore.env",
+]

@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.10.0"
+          python-version: ${{ matrix.python }}
+      - run: uv sync --frozen
+      - run: uv run --frozen pytest -q
+
+  quality:
+    name: Lint and packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.10.0"
+          python-version: "3.13"
+      - run: uv sync --frozen
+      - run: uv run --frozen ruff check src tests scripts
+      - run: uv run --frozen ruff format --check src tests scripts
+      - run: uv run --frozen python scripts/generate_tool_reference.py --check
+      - name: Check the dependency export
+        run: |
+          uv export --frozen --no-dev --no-emit-project --no-header --output-file /tmp/requirements.lock > /dev/null
+          diff -u requirements.lock /tmp/requirements.lock
+      - run: uv build
+      - run: uv run --frozen python scripts/check_artifacts.py dist/*.whl dist/*.tar.gz
+      - name: Install the wheel in a clean environment
+        run: |
+          uv venv /tmp/plenticore-wheel
+          uv pip install --python /tmp/plenticore-wheel/bin/python dist/*.whl
+          /tmp/plenticore-wheel/bin/plenticore-mcp --help
+
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: docker build -t plenticore-mcp:ci .
+      - run: docker run --rm plenticore-mcp:ci --help
+      - name: Check container configuration
+        run: |
+          docker run --rm -e PLENTICORE_URL=http://127.0.0.1:1 \
+            -e PLENTICORE_PASSWORD=ci-placeholder -e PLENTICORE_READ_ONLY=true \
+            --entrypoint python plenticore-mcp:ci \
+            -c 'from plenticore_mcp.config import Settings; assert Settings.from_env().read_only'
