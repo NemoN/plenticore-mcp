@@ -3,6 +3,8 @@
 [![CI](https://github.com/NemoN/plenticore-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/NemoN/plenticore-mcp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+<a href="https://www.buymeacoffee.com/nemon" target="_blank"><img src="https://www.buymeacoffee.com/assets/img/custom_images/white_img.png" alt="Buy Me A Coffee" style="height: auto !important;width: auto !important;" ></a>
+
 English · [Deutsch](README.de.md)
 
 An MCP server for KOSTAL PLENTICORE inverters. Read power, energy counters and
